@@ -75,6 +75,7 @@ def get_season(day):
     season = next(season for season, (start, end) in seasons if start <= day <= end)    
     return season
 
+#printing some summary info
 print('Number of Reviews: ', df.shape[0])
 print('Top words by count: ', top_n_words_count(df.description), '\n')
 print('Top words by tf-idf: ', top_n_words_tfidf(df.description))
@@ -90,24 +91,30 @@ plt.show()
 
 #ploting the number of reviews from each day of the year
 dfTemp = df
-dfTemp['hikeDate'] =  dfTemp['hikeDate'].apply(scrub_year)
-dates = pd.DataFrame(dfTemp['hikeDate'].value_counts().reset_index())[:-1]
+dfTemp['hikeDay'] =  dfTemp['hikeDate'].apply(scrub_year)
+dates = pd.DataFrame(dfTemp['hikeDay'].value_counts().reset_index())[:-1]
 dates.columns = ['date', 'count']
 dates = sns.lineplot(data=dates, x='date', y='count')
 dates.set(xlabel='Day', ylabel='Number of Reviews', 
           xticklabels = ['Jan', 'Mar', 'May', 'Jul', 'Sept', 'Nov'],
           title='Numbe of Reviews by Day of Year')
-plt.show()
 
 #exploring what season has more reviews
 df['season'] = df['hikeDate'].apply(get_season)
-season = sns.countplot(x = "season", data = df, palette="deep")
+k = ['spring', 'summer', 'autumn', 'winter']
+season = sns.countplot(x = "season", data = df, palette="PuBuGn_d", order = k)
 season.set(xlabel='Season', ylabel='Number of Reviews', 
            title='Number of Reviews by Season')
-plt.show()
 
-
+#popular weekdays to post (posts typically on the weekend or days following)
+df['hikeWeekday'] = df.hikeDate.apply(lambda x: x.strftime('%A'))
+k = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 
+     'Sunday']
+l = ['Mon', 'Tues', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun']
+season = sns.countplot(x = "hikeWeekday", data = df, palette="PuBuGn_d", order = k)
+season.set(xlabel='Weekday', ylabel='Number of Reviews', 
+           xticklabels = l, title='Number of Reviews by Weekday')
 
 ###Next steps
-#popular weekdays to post (posts typically on the weekend or days following)
+#find popular words per each hike (removing custom stop words)
 #try to predict the season from the description, using Bert and LR
