@@ -36,9 +36,9 @@ output: top words
 Instead of count, tf-idf if used to identify the words
 that are deamed "most important" to the corpus.
 '''
-def top_n_words_tfidf(corpus, n = 10):
-    vectorizer = TfidfVectorizer(min_df = 3)
-    X = vectorizer.fit_transform(df.description)
+def top_n_words_tfidf(corpus, n = 10, min_df = 3):
+    vectorizer = TfidfVectorizer(min_df = min_df)
+    X = vectorizer.fit_transform(corpus)
     
     feature_array = np.array(vectorizer.get_feature_names())
     tfidf_sorting = np.argsort(X.toarray()).flatten()[::-1]  
@@ -114,6 +114,12 @@ l = ['Mon', 'Tues', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun']
 season = sns.countplot(x = "hikeWeekday", data = df, palette="PuBuGn_d", order = k)
 season.set(xlabel='Weekday', ylabel='Number of Reviews', 
            xticklabels = l, title='Number of Reviews by Weekday')
+
+#find popular words per each hike (removing custom stop words)
+dfTemp = df.groupby('hike')['description'].apply(list).to_frame()
+dfTemp = dfTemp[:10]
+dfTemp['Top Words'] = dfTemp['description'].apply(top_n_words_tfidf)
+
 
 ###Next steps
 #find popular words per each hike (removing custom stop words)
