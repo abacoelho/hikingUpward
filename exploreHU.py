@@ -116,10 +116,10 @@ season.set(xlabel='Weekday', ylabel='Number of Reviews',
            xticklabels = l, title='Number of Reviews by Weekday')
 
 #find popular words per each hike (removing custom stop words)
-dfTemp = df.groupby('hike')['description'].apply(list).to_frame()
-dfTemp = dfTemp[:10]
+dfTemp = df.groupby('hike')['description'].apply(list).to_frame().reset_index()
 dfTemp['Top Words'] = dfTemp['description'].apply(top_n_words_tfidf)
-
+dfTemp = dfTemp[['Top Words', 'hike']]
+test = pd.merge(df, dfTemp, on='hike', how='left')
 
 ###Next steps
 #find popular words per each hike (removing custom stop words)
