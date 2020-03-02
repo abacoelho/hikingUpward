@@ -120,6 +120,8 @@ dfTemp = df.groupby('hike')['description'].apply(list).to_frame().reset_index()
 dfTemp['Top Words'] = dfTemp['description'].apply(top_n_words_tfidf)
 dfTemp = dfTemp[['Top Words', 'hike']]
 test = pd.merge(df, dfTemp, on='hike', how='left')
+#TODO: remove stop words and clean top words
+#TODO: put plots into grid
 
 ###Next steps
 #find popular words per each hike (removing custom stop words)
