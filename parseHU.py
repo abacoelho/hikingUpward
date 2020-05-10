@@ -5,10 +5,13 @@ Created on Tue Dec 10 19:18:26 2019
 @author: abcoelho
 """
 import pandas as pd
+import numpy as np
 from datetime import datetime
 import requests
 import bs4
 import re
+import argparse
+from tqdm import tqdm
 
 #This script scrapes reviews from Hiking Upward
 
@@ -32,10 +35,8 @@ def scrape_reviews(url):
                        'hikeDate':df[3].iloc[::2], 
                        'rating':ratings})
     
-    #cleaning
+    #tag resulting comments with the hike name and url
     df['hike'] = str(hike).split('<')[1].split('>')[1]
-    df.commenter = df.commenter.apply(lambda x: x.replace('By:  ', ''))
-    df.hikeDate = df.hikeDate.apply(lambda x: x.replace('Date of Hike: ', ''))
     df['url'] = url
     return df
 
@@ -60,10 +61,8 @@ def scrape_all_reviews(url):
                          'hikeDate':df[2].iloc[::2].values, 
                          'rating': ratings})
     
-    #cleaning
+    #tag resulting comments with the hike name and url
     df['hike'] = str(hike).split('Reviews for the ')[1].split('<')[0]
-    df.commenter = df.commenter.apply(lambda x: x.replace('By: ', ''))
-    df.hikeDate = df.hikeDate.apply(lambda x: x.replace('Date of Hike: ', ''))
     df['url'] = url
     return df
 
@@ -98,13 +97,27 @@ def scrape_hikes_comments(url):
         df.url = url
         return df
 
+
 '''
-input: dataframe with a 'hikeDate' column
-output: df with a clean date column
-Standardizes the date column to datetime.
+input: text that should be a date from HU
+output: datetime object (or nan if not datetime)
+Standardizes the date to datetime.
+'''
+def clean_date(text):
+    try:
+        return datetime.strptime(text, '%A, %B %d, %Y')
+    except:
+        return np.nan
+        
+'''
+input: dataframe with a 'commenter' and 'hikeDate' column
+output: df with the two columns standardized
+Cleans and standardizes the HU dataframe
 '''
 def clean_df(df):
-    df.hikeDate = df.hikeDate.apply(lambda x: datetime.strptime(x, '%A, %B %d, %Y'))
+    df.commenter = df.commenter.apply(lambda x: str(x).replace('By:  ', ''))
+    df.hikeDate = df.hikeDate.apply(lambda x: str(x).replace('Date of Hike: ', ''))    
+    df.hikeDate = df.hikeDate.apply(clean_date)
     return df
 
 '''
@@ -120,14 +133,19 @@ def scrape_HU_reviews():
     
     #parse the hikes' urls
     hikesURL = list(map(lambda x: x.split('"')[3],str(soup).split('new hike')[2:-1]))
-
+    print('\nCompleted scraping all of the hike names on HU')
+    
     #prepare an empty dataframe
     df = pd.DataFrame(columns = ['hike', 'url', 'commenter', 'hikeDate', 
                                  'rating', 'description'])
     
+    #stage a progress bar to show a progress update
+    print('Beginning to scrape the comments for each hike')
+    
     #scrape comments from all the hike webpages
-    for url in hikesURL:
+    for url in tqdm(hikesURL):
         df = df.append(scrape_hikes_comments(url))
+    print('Completed scraping all the comments from all the hikes')
     df = df.reset_index(drop = True)
     
     #clean up a bit
@@ -136,19 +154,22 @@ def scrape_HU_reviews():
     return df
 
 
-df = scrape_HU_reviews()
-df.to_pickle("HU_reviews.pkl")
+if __name__ == "__main__":
+    #prepare the script's arguments
+    parser = argparse.ArgumentParser(description = 'Scrape all hikes and their \
+                                     comments from hiking upward.')   
+    parser.add_argument('outPickle', help = 'path to pickle file to save hike \
+                        comments and associated meta data')
+    #TODO: add log file
+    args = parser.parse_args()
+    
+    # Scrape all the reviews
+    df = scrape_HU_reviews()
+    
+    # Save to specified pickle file
+    df.to_pickle(args.outPickle)
+    
 
-
-###Testing
-summaryTest = 'https://www.hikingupward.com/NCSP/PilotMountain/'
-t1 = scrape_reviews(summaryTest)
-
-allReviewsTest = 'https://www.hikingupward.com/all_reviews.asp?HN=Billy%20Goat%20Trail&RID=135&URL=/OMH/BillyGoatTrail/index.asp'
-t2 = scrape_all_reviews(allReviewsTest)
-#NOTE: commenter column can contain metadata 
-
-###Future updates
-#adding pauses in the scraping to not get booted off the website
-#additional cleaning to the data
+###TODO
+#commenter column can contain metadata 
 #scraping images?
